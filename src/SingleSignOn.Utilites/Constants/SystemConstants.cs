@@ -1,37 +1,37 @@
 ﻿namespace SingleSignOn.Utilites.Constants
 {
-    public class SystemConstants
+    public static class SystemConstants
     {
-        public class Roles
+        public static class Roles
         {
             public const string Admin = "Admin";
         }
-        public class Permission
+        public static class Permission
         {
             public const string Type = "Permissions";
         }
-        public class View
+        public static class View
         {
             public const string Type = "VIEW";
         }
-        public class Create
+        public static class Create
         {
             public const string Type = "CREATE";
         }
-        public class Update
+        public static class Update
         {
             public const string Type = "UPDATE";
         }
-        public class Delete
+        public static class Delete
         {
             public const string Type = "DELETE";
         }
 
-        public class True
+        public static class True
         {
             public const string Type = "true";
         }
-        public class False
+        public static class False
         {
             public const string Type = "false";
         }

@@ -1,12 +1,10 @@
 using SingleSignOn.Api.Data;
 using SingleSignOn.Api.Data.Entities;
-using SingleSignOn.Api.IdentityServer;
 using SingleSignOn.Api.Services;
 using IdentityServer4.EntityFramework.DbContexts;
 using IdentityServer4.EntityFramework.Mappers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +16,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using SingleSignOn.Api.Configurations;
+using Microsoft.Extensions.Options;
 
 namespace SingleSignOn.Api
 {
@@ -43,7 +43,7 @@ namespace SingleSignOn.Api
 
             services.AddIdentityServer(options =>
             {
-                options.IssuerUri = Configuration["IssuerUri"];
+                options.IssuerUri = Configuration["ApplicationUrl"];
                 options.Events.RaiseErrorEvents = true;
                 options.Events.RaiseInformationEvents = true;
                 options.Events.RaiseFailureEvents = true;
@@ -91,10 +91,7 @@ namespace SingleSignOn.Api
 
             // Config authentication
             services.AddAuthentication()
-               .AddLocalApi("Bearer", option =>
-               {
-                   option.ExpectedScope = "SSO_SERVER";
-               });
+               .AddLocalApi("Bearer", option => option.ExpectedScope = "sso.api");
 
             // Config authorization
             services.AddAuthorization(options =>
@@ -119,6 +116,8 @@ namespace SingleSignOn.Api
                 });
             });
 
+            services.Configure<IdentityServerConfig>(Configuration.GetSection(IdentityServerConfig.ConfigName));
+
             services.AddTransient<DbInitializer>();
             services.AddTransient<IEmailSender, EmailSenderService>();
             services.AddTransient<IStorageService, FileStorageService>();
@@ -135,8 +134,8 @@ namespace SingleSignOn.Api
                     {
                         Implicit = new OpenApiOAuthFlow
                         {
-                            AuthorizationUrl = new Uri(Configuration["IssuerUri"] + "/connect/authorize"),
-                            Scopes = new Dictionary<string, string> { { "SSO_SERVER", "SSO Server API Resources" } }
+                            AuthorizationUrl = new Uri(Configuration["ApplicationUrl"] + "/connect/authorize"),
+                            Scopes = new Dictionary<string, string> { { "sso.api", "Single Sign-On APIs Scope" } }
                         },
                     },
                 });
@@ -147,7 +146,7 @@ namespace SingleSignOn.Api
                         {
                             Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
                         },
-                        new List<string>{ "SSO_SERVER" }
+                        new List<string>{ "sso.api" }
                     }
                 });
             });
@@ -164,7 +163,7 @@ namespace SingleSignOn.Api
             app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .SetIsOriginAllowed(origin => true) // allow any origin
+                .SetIsOriginAllowed(_ => true) // allow any origin
                 .AllowCredentials()); // allow credentials
 
             InitializeDatabase(app);
@@ -189,8 +188,8 @@ namespace SingleSignOn.Api
 
             app.UseSwaggerUI(c =>
             {
-                c.OAuthClientId("swagger_sso_server");
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "AUTH SERVER API V1");
+                c.OAuthClientId("single.sign.on.api.swagger");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Single Sign-On APIs Swagger Docs V1");
             });
 
         }
@@ -199,54 +198,54 @@ namespace SingleSignOn.Api
         private void InitializeDatabase(IApplicationBuilder app)
         {
             // Create db User and add data user
-            using (var scope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
-            {
-                scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
-                var dbInitializer = scope.ServiceProvider.GetRequiredService<DbInitializer>();
+            using var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope();
+
+                serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
+                var dbInitializer = serviceScope.ServiceProvider.GetRequiredService<DbInitializer>();
                 dbInitializer.Seed().Wait();
-            }
 
             // Create db and add data AuthServer
-            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
+
+            var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
+            context.Database.Migrate();
+            
+            var identityServerConfig = serviceScope.ServiceProvider.GetRequiredService<IOptions<IdentityServerConfig>>().Value;
+            var identityServerDataInitializer = new IdentityServerDataInitializer(identityServerConfig);
+
+            if (!context.Clients.Any())
             {
-                serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
+                foreach (var client in identityServerDataInitializer.GetClients())
+                {
+                    context.Clients.Add(client.ToEntity());
+                }
+                context.SaveChanges();
+            }
 
-                var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
-                context.Database.Migrate();
-                if (!context.Clients.Any())
+            if (!context.IdentityResources.Any())
+            {
+                foreach (var resource in identityServerDataInitializer.GetIdentityResources())
                 {
-                    foreach (var client in Config.GetClients())
-                    {
-                        context.Clients.Add(client.ToEntity());
-                    }
-                    context.SaveChanges();
+                    context.IdentityResources.Add(resource.ToEntity());
                 }
+                context.SaveChanges();
+            }
 
-                if (!context.IdentityResources.Any())
+            if (!context.ApiResources.Any())
+            {
+                foreach (var resource in identityServerDataInitializer.GetApiResources())
                 {
-                    foreach (var resource in Config.GetIdentityResources())
-                    {
-                        context.IdentityResources.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
+                    context.ApiResources.Add(resource.ToEntity());
                 }
-
-                if (!context.ApiResources.Any())
+                context.SaveChanges();
+            }
+            if (!context.ApiScopes.Any())
+            {
+                foreach (var resource in identityServerDataInitializer.GetApiScopes())
                 {
-                    foreach (var resource in Config.GetApiResources())
-                    {
-                        context.ApiResources.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
+                    context.ApiScopes.Add(resource.ToEntity());
                 }
-                if (!context.ApiScopes.Any())
-                {
-                    foreach (var resource in Config.GetApiScopes())
-                    {
-                        context.ApiScopes.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
+                context.SaveChanges();
             }
         }
     }
