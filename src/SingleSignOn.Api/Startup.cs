@@ -161,15 +161,6 @@ namespace SingleSignOn.Api
                 app.UseDeveloperExceptionPage();
             }
 
-            var fordwardedHeaderOptions = new ForwardedHeadersOptions
-            {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-            };
-
-            fordwardedHeaderOptions.KnownNetworks.Clear();
-
-            fordwardedHeaderOptions.KnownProxies.Clear();
-
               app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
