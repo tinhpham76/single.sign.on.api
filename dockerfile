@@ -10,7 +10,7 @@ WORKDIR /app
 COPY ["./src", "src/"]
 RUN dotnet restore "src/SingleSignOn.Api/SingleSignOn.Api.csproj"
 
-WORKDIR "app/src/SingleSignOn.Api"
+WORKDIR "src/SingleSignOn.Api"
 RUN dotnet build "SingleSignOn.Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
