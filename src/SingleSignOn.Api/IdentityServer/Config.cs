@@ -75,16 +75,16 @@ namespace SingleSignOn.Api.IdentityServer
                     AllowAccessTokensViaBrowser = true,
                     RedirectUris = new List<string>
                     {
-                        "http://localhost:4200/auth-callback",
-                        "http://localhost:4200/silent-renew.html"
+                        "http://sso.core.admin.xxx98qn.xyz/auth-callback",
+                        "http://sso.core.admin.xxx98qn.xyz/silent-renew.html"
                     },
                     PostLogoutRedirectUris = new List<string>
                     {
-                        "http://localhost:4200/"
+                        "http://sso.core.admin.xxx98qn.xyz/"
                     },
                     AllowedCorsOrigins = new List<string>
                     {
-                        "http://localhost:4200"
+                        "http://sso.core.admin.xxx98qn.xyz"
                     },
                     AllowedScopes = new List<string>
                     {

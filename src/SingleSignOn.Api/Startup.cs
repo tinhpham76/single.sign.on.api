@@ -161,7 +161,7 @@ namespace SingleSignOn.Api
                 app.UseDeveloperExceptionPage();
             }
 
-              app.UseCors(x => x
+            app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .SetIsOriginAllowed(origin => true) // allow any origin
@@ -171,8 +171,6 @@ namespace SingleSignOn.Api
 
             app.UseStaticFiles();
 
-            // app.UseHttpsRedirection();
-
             app.UseIdentityServer();
 
             app.UseAuthentication();
@@ -180,7 +178,6 @@ namespace SingleSignOn.Api
             app.UseRouting();
 
             app.UseAuthorization();
-
 
             app.UseEndpoints(endpoints =>
             {
