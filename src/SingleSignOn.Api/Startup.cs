@@ -170,12 +170,11 @@ namespace SingleSignOn.Api
 
             fordwardedHeaderOptions.KnownProxies.Clear();
 
-            app.UseCors(corsPolicyBuilder =>
-                corsPolicyBuilder
-                .AllowAnyOrigin()
+              app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-            );
+                .SetIsOriginAllowed(origin => true) // allow any origin
+                .AllowCredentials()); // allow credentials
 
             InitializeDatabase(app);
 
