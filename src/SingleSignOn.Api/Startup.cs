@@ -163,8 +163,7 @@ namespace SingleSignOn.Api
             app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowAnyOrigin() // allow any origin
-                .AllowCredentials()); // allow credentials
+                .AllowAnyOrigin());
 
             InitializeDatabase(app);
 
