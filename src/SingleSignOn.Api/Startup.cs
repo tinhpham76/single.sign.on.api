@@ -181,7 +181,7 @@ namespace SingleSignOn.Api
 
             app.UseStaticFiles();
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
             app.UseIdentityServer();
 
