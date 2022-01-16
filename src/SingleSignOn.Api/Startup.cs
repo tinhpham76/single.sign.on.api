@@ -18,6 +18,7 @@ using System.Linq;
 using System.Reflection;
 using SingleSignOn.Api.Configurations;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace SingleSignOn.Api
 {
@@ -37,7 +38,8 @@ namespace SingleSignOn.Api
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")), ServiceLifetime.Transient);
             //2. Setup idetntity
             services.AddIdentity<User, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
 
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
 
@@ -94,10 +96,17 @@ namespace SingleSignOn.Api
                .AddLocalApi("Bearer", option => option.ExpectedScope = "sso.api");
 
             services.ConfigureApplicationCookie(options =>
-    {
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
-        options.SlidingExpiration = false;
-   });
+{
+options.AccessDeniedPath = "/Account/AccessDenied";
+options.Cookie.Name = "YourAppCookieName";
+options.Cookie.HttpOnly = true;
+options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+options.LoginPath = "/Account/Login";
+//ReturnUrlParameter requires
+//using Microsoft.AspNetCore.Authentication.Cookies;
+options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
+options.SlidingExpiration = true;
+});
 
             // Config authorization
             services.AddAuthorization(options =>
