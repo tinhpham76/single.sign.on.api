@@ -93,6 +93,12 @@ namespace SingleSignOn.Api
             services.AddAuthentication()
                .AddLocalApi("Bearer", option => option.ExpectedScope = "sso.api");
 
+            services.ConfigureApplicationCookie(options =>
+    {
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = false;
+   });
+
             // Config authorization
             services.AddAuthorization(options =>
             {
