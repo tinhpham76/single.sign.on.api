@@ -18,6 +18,7 @@ using System.Linq;
 using System.Reflection;
 using SingleSignOn.Api.Configurations;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace SingleSignOn.Api
 {
@@ -90,7 +91,8 @@ namespace SingleSignOn.Api
             services.AddControllersWithViews();
 
             // Config authentication
-            services.AddAuthentication()
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie()
                .AddLocalApi("Bearer", option => option.ExpectedScope = "sso.api");
 
             // Config authorization
